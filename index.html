@@ -157,7 +157,7 @@
 
       // 시트가 2개 이상일 때만 문구 + 버튼 생성
       const label = document.createElement("span");
-      label.textContent = "조회할 시트를 선택해 주세요:";
+      label.innerHTML = "아래에서 조회할 시트를 선택해 주세요<br>"; 
       sheetButtons.appendChild(label);
 
       matchingSheets.forEach(sheet => {
