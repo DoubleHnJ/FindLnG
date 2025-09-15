@@ -157,11 +157,9 @@
 
       // 시트가 2개 이상일 때만 문구 + 버튼 생성
       const label = document.createElement("span");
-      label.textContent = "아래에서 조회할 시트를 선택해 주세요";
+      label.textContent = "⬇️⬇️아래에서 조회할 시트를 선택해 주세요⬇️⬇️";
+      <div id="sheetList"></div>;
       sheetButtons.appendChild(label);
-      
-      // 줄바꿈 넣기
-      sheetButtons.appendChild(document.createElement("br"));
       
       matchingSheets.forEach(sheet => {
         const btn = document.createElement("button");
