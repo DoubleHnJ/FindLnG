@@ -7,32 +7,42 @@
     body { font-family: Arial, sans-serif; margin: 30px; }
     h2 { color: #333; }
     table { border-collapse: collapse; margin: 20px 0; }
-    td { border: 1px solid #aaa; padding: 6px 12px; text-align: center; }
+    td, th { border: 1px solid #aaa; padding: 6px 12px; text-align: center; }
     .highlight { background-color: yellow; font-weight: bold; }
     input { padding: 6px; margin-right: 5px; }
     button { padding: 6px 12px; cursor: pointer; }
   </style>
 </head>
 <body>
-  <h2>제품 위치 찾기 (구글 스프레드시트 연동)</h2>
+  <h2>제품 위치 찾기 (CSV 연동)</h2>
   <input type="text" id="searchBox" placeholder="제품명을 입력하세요">
   <button onclick="highlight()">찾기</button>
 
   <table id="productTable"></table>
 
   <script>
-    // 🔹 여기에 본인 구글시트의 ID와 gid를 넣으세요
-    // 시트 공유: '웹에 게시' → CSV 링크 복사 후 아래에 반영
-    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSHDRrvbv968H60Sr8jLyvfRqhxYecd-89RekdyOb2m0oFSUCFFReJTIf5Zfnw-UuvUnKkn_Z3BXf83/pub?output=csv";
+    // 테스트용 CSV 링크 (본인 시트 CSV 링크로 교체 가능)
+    const csvUrl = "https://people.sc.fsu.edu/~jburkardt/data/csv/addresses.csv";
 
     async function loadSheet() {
-      const res = await fetch(sheetUrl);
+      const res = await fetch(csvUrl);
       const text = await res.text();
-      const rows = text.split("\n").map(r => r.split(","));
-      
+      const rows = text.trim().split("\n").map(r => r.split(","));
+
       const table = document.getElementById("productTable");
       table.innerHTML = "";
-      rows.forEach(row => {
+
+      // 헤더 만들기
+      const headerRow = document.createElement("tr");
+      rows[0].forEach(cell => {
+        const th = document.createElement("th");
+        th.textContent = cell.trim();
+        headerRow.appendChild(th);
+      });
+      table.appendChild(headerRow);
+
+      // 나머지 데이터
+      rows.slice(1).forEach(row => {
         const tr = document.createElement("tr");
         row.forEach(cell => {
           const td = document.createElement("td");
@@ -44,18 +54,18 @@
     }
 
     function highlight() {
-      const searchValue = document.getElementById("searchBox").value.trim();
+      const searchValue = document.getElementById("searchBox").value.trim().toLowerCase();
       const cells = document.querySelectorAll("#productTable td");
 
       cells.forEach(cell => {
         cell.classList.remove("highlight");
-        if (searchValue !== "" && cell.textContent === searchValue) {
+        if (searchValue !== "" && cell.textContent.toLowerCase() === searchValue) {
           cell.classList.add("highlight");
         }
       });
     }
 
-    // 페이지 로드시 스프레드시트 불러오기
+    // 페이지 로드시 CSV 불러오기
     loadSheet();
   </script>
 </body>
