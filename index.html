@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>제품 위치 찾기 (엘앤지_API)</title>
+<title>제품 위치 찾기 (시트 전체 표시 + 하이라이트)</title>
 <style>
 body { font-family: Arial, sans-serif; margin: 30px; }
 h2 { color: #333; }
@@ -15,7 +15,7 @@ button { padding: 6px 12px; cursor: pointer; }
 </head>
 <body>
 
-<h2>제품 위치 찾기 (Google Sheets API)</h2>
+<h2>제품 위치 찾기</h2>
 <input type="text" id="searchBox" placeholder="제품명을 입력하세요">
 <button onclick="searchProduct()">찾기</button>
 
@@ -25,9 +25,10 @@ button { padding: 6px 12px; cursor: pointer; }
 const SPREADSHEET_ID = "14eYGH3njFIqQr7pX8ClJ5LdIiNnQ272QOYiyeTzATsM"; // 실제 ID로 교체
 const API_KEY = "AIzaSyDhgt-UIJklNeg-Jjky0-3piV6XQx4nrsc"; // 실제 API Key로 교체
 
-// 여러 시트 이름
-const SHEETS = ["index", "DSI"];
+// 시트 이름 배열
+const SHEETS = ["시트1", "시트2"]; // 필요 시 시트 이름 추가
 
+// 특정 시트 전체 가져오기
 async function fetchSheet(sheetName) {
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${sheetName}?key=${API_KEY}`;
   const res = await fetch(url);
@@ -35,6 +36,7 @@ async function fetchSheet(sheetName) {
   return data.values || [];
 }
 
+// 검색 + 시트 전체 표시 + 일치 셀 하이라이트
 async function searchProduct() {
   const searchValue = document.getElementById("searchBox").value.trim().toLowerCase();
   const table = document.getElementById("productTable");
@@ -42,23 +44,24 @@ async function searchProduct() {
 
   let found = false;
 
+  // 모든 시트 순회
   for (let sheet of SHEETS) {
     const rows = await fetchSheet(sheet);
 
-    // 헤더 추가 (첫 시트 한 번만)
-    if (table.rows.length === 0 && rows.length > 0) {
-      const tr = document.createElement("tr");
+    // 해당 시트에서 검색어가 있으면 시트 전체 표시
+    const sheetHasProduct = rows.some(row => row.some(cell => cell.toLowerCase() === searchValue));
+    if (sheetHasProduct) {
+      // 헤더 추가
+      const headerRow = document.createElement("tr");
       rows[0].forEach(cell => {
         const th = document.createElement("th");
         th.textContent = cell;
-        tr.appendChild(th);
+        headerRow.appendChild(th);
       });
-      table.appendChild(tr);
-    }
+      table.appendChild(headerRow);
 
-    // 데이터 검색
-    rows.slice(1).forEach(row => {
-      if (row.some(cell => cell.toLowerCase() === searchValue)) {
+      // 데이터 추가
+      rows.slice(1).forEach(row => {
         const tr = document.createElement("tr");
         row.forEach(cell => {
           const td = document.createElement("td");
@@ -67,12 +70,16 @@ async function searchProduct() {
           tr.appendChild(td);
         });
         table.appendChild(tr);
-        found = true;
-      }
-    });
+      });
+
+      found = true;
+      break; // 첫 번째 일치하는 시트만 표시
+    }
   }
 
-  if (!found) alert("제품을 찾을 수 없습니다.");
+  if (!found) {
+    alert("제품을 찾을 수 없습니다.");
+  }
 }
 </script>
 
