@@ -2,70 +2,51 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>제품 위치 찾기-dsi전</title>
+<title>제품 위치 찾기-테두리 적용</title>
 <style>
-/* 전체 중앙 정렬 */
 body {
   font-family: Arial, sans-serif;
   display: flex;
   flex-direction: column;
-  align-items: center; /* 수평 중앙 */
-  justify-content: flex-start; /* 수직 시작 위치 */
+  align-items: center;
   margin: 30px;
 }
 
-/* 제목 중앙 */
-h2 {
-  color: #333;
-  text-align: center;
-}
+h2 { text-align: center; color: #333; }
 
-/* 입력창, 버튼, 드롭다운 중앙 */
-input, button, select {
-  padding: 6px;
-  margin: 5px;
-  text-align: center;
-}
+input, button { padding: 6px; margin: 5px; }
 
-/* 시트 버튼 영역 중앙 */
 #sheetButtons {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center; /* 중앙 정렬 */
+  justify-content: center;
   margin: 10px 0;
 }
 
 #sheetButtons span {
   margin-right: 10px;
   font-weight: bold;
-  align-self: center; /* 버튼과 텍스트 수직 맞춤 */
+  align-self: center;
 }
 
-/* 테이블 중앙, 자동 너비 */
 table {
   border-collapse: collapse;
   margin: 20px 0;
-  width: auto;
-  text-align: center;
 }
 
-/* 테이블 셀 스타일 */
 td, th {
-  border: 1px solid #aaa;
   padding: 6px 12px;
   text-align: center;
+  /* 기본적으로 테두리 없음 */
+  border: none;
 }
 
-/* 하이라이트 */
-.highlight {
-  background-color: yellow;
-  font-weight: bold;
-}
+.highlight { background-color: yellow; font-weight: bold; }
 </style>
 </head>
 <body>
 
-<h2>제품 위치 찾기 (시트 선택 + 하이라이트)</h2>
+<h2>제품 위치 찾기 (셀 배경색 기준 테두리 표시)</h2>
 
 <input type="text" id="searchBox" placeholder="제품명을 입력하세요">
 <button onclick="searchProduct()">찾기</button>
@@ -83,20 +64,38 @@ const SHEETS = ["MAIN", "DSI", "TEST"]; // 필요 시 시트 추가
 let matchingSheets = [];
 let currentSearchValue = "";
 
-// 시트 전체 데이터 가져오기
+// 시트 전체 데이터와 배경색 가져오기
 async function fetchSheet(sheetName) {
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${sheetName}?key=${API_KEY}`;
-  const res = await fetch(url);
-  const data = await res.json();
-  return data.values || [];
+  const urlValues = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${sheetName}?key=${API_KEY}`;
+  const resValues = await fetch(urlValues);
+  const dataValues = await resValues.json();
+  const values = dataValues.values || [];
+
+  // 배경색 가져오기
+  const urlFormat = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}?fields=sheets(properties(title),data(rowData(values(userEnteredFormat(backgroundColor))))&key=${API_KEY}`;
+  const resFormat = await fetch(urlFormat);
+  const dataFormat = await resFormat.json();
+
+  let backgrounds = [];
+  const sheetObj = dataFormat.sheets.find(s => s.properties.title === sheetName);
+  if(sheetObj && sheetObj.data && sheetObj.data[0].rowData) {
+    backgrounds = sheetObj.data[0].rowData.map(row => 
+      row.values ? row.values.map(cell => cell.userEnteredFormat && cell.userEnteredFormat.backgroundColor ? cell.userEnteredFormat.backgroundColor : null) : []
+    );
+  }
+
+  return { values, backgrounds };
 }
 
-// 시트 데이터 테이블 표시
-function displaySheet(rows, searchValue) {
+// 시트 표시
+function displaySheet(sheetData, searchValue) {
   const table = document.getElementById("productTable");
   table.innerHTML = "";
 
-  // 헤더 추가
+  const rows = sheetData.values;
+  const backgrounds = sheetData.backgrounds;
+
+  // 헤더
   const headerRow = document.createElement("tr");
   rows[0].forEach(cell => {
     const th = document.createElement("th");
@@ -105,15 +104,24 @@ function displaySheet(rows, searchValue) {
   });
   table.appendChild(headerRow);
 
-  // 데이터 행 추가
-  rows.slice(1).forEach(row => {
+  // 데이터
+  rows.slice(1).forEach((row, rIndex) => {
     const tr = document.createElement("tr");
-    row.forEach(cell => {
+    row.forEach((cell, cIndex) => {
       const td = document.createElement("td");
       td.textContent = cell;
+
+      // 하이라이트
       if(typeof cell === "string" && cell.toLowerCase().includes(searchValue)) {
         td.classList.add("highlight");
       }
+
+      // 배경색이 있으면 테두리 표시
+      const bg = backgrounds[rIndex+1] ? backgrounds[rIndex+1][cIndex] : null;
+      if(bg && (bg.red !== 1 || bg.green !== 1 || bg.blue !== 1)) { // 흰색이 아닌 경우
+        td.style.border = "1px solid #aaa";
+      }
+
       tr.appendChild(td);
     });
     table.appendChild(tr);
@@ -128,7 +136,7 @@ async function searchProduct() {
   const table = document.getElementById("productTable");
   const sheetButtons = document.getElementById("sheetButtons");
   table.innerHTML = "";
-  sheetButtons.innerHTML = ""; // 기존 버튼 초기화
+  sheetButtons.innerHTML = "";
 
   if(searchValue.length < 5) {
     alert("제품명을 최소 5자 이상 입력해주세요.");
@@ -137,12 +145,11 @@ async function searchProduct() {
 
   matchingSheets = [];
 
-  // 모든 시트 검색
   for (let sheet of SHEETS) {
-    const rows = await fetchSheet(sheet);
-    const hasProduct = rows.some(row => row.some(cell => typeof cell === "string" && cell.toLowerCase().includes(searchValue)));
+    const sheetData = await fetchSheet(sheet);
+    const hasProduct = sheetData.values.some(row => row.some(cell => typeof cell === "string" && cell.toLowerCase().includes(searchValue)));
     if(hasProduct) {
-      matchingSheets.push({ name: sheet, data: rows });
+      matchingSheets.push({ name: sheet, data: sheetData });
     }
   }
 
@@ -151,13 +158,12 @@ async function searchProduct() {
     return;
   }
 
-  // 시트가 하나면 바로 표시
   if(matchingSheets.length === 1) {
     displaySheet(matchingSheets[0].data, searchValue);
     return;
   }
 
-  // 시트가 2개 이상일 때만 문구 + 버튼 생성
+  // 시트가 2개 이상일 때
   const label = document.createElement("span");
   label.textContent = "조회할 시트를 선택해 주세요:";
   sheetButtons.appendChild(label);
