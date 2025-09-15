@@ -68,13 +68,17 @@ async function fetchSheetBackgrounds(sheetName) {
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}?fields=sheets(properties(title),data(rowData(values(userEnteredFormat(backgroundColor))))&key=${API_KEY}`;
   const res = await fetch(url);
   const data = await res.json();
+
   const sheetObj = data.sheets.find(s => s.properties.title === sheetName);
-  let backgrounds = [];
-  if(sheetObj && sheetObj.data && sheetObj.data[0].rowData) {
-    backgrounds = sheetObj.data[0].rowData.map(row =>
-      row.values ? row.values.map(cell => cell.userEnteredFormat && cell.userEnteredFormat.backgroundColor ? cell.userEnteredFormat.backgroundColor : null) : []
-    );
-  }
+  if (!sheetObj || !sheetObj.data || !sheetObj.data[0]?.rowData) return [];
+
+  // rowData가 있을 때만 처리
+  const backgrounds = sheetObj.data[0].rowData.map(row =>
+    row.values
+      ? row.values.map(cell => cell?.userEnteredFormat?.backgroundColor || null)
+      : []  // row.values가 없으면 빈 배열
+  );
+
   return backgrounds;
 }
 
