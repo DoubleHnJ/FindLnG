@@ -156,11 +156,12 @@
       }
 
       // 시트가 2개 이상일 때만 문구 + 버튼 생성
-      const label = document.createElement("div"); // span → div 로 변경
+      const label = document.createElement("span");
       label.textContent = "아래에서 조회할 시트를 선택해 주세요";
-      label.style.fontWeight = "bold";
-      label.style.marginBottom = "10px";
       sheetButtons.appendChild(label);
+      
+      // 줄바꿈 넣기
+      sheetButtons.appendChild(document.createElement("br"));
       
       matchingSheets.forEach(sheet => {
         const btn = document.createElement("button");
@@ -168,7 +169,6 @@
         btn.onclick = () => displaySheet(sheet.data, searchValue);
         sheetButtons.appendChild(btn);
       });
-
     }
   </script>
 
