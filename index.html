@@ -156,16 +156,26 @@
       }
 
       // 시트가 2개 이상일 때만 문구 + 버튼 생성
-      const label = document.createElement("span");
+      const label = document.createElement("div"); // span → div
       label.textContent = "⬇️⬇️아래에서 조회할 시트를 선택해 주세요⬇️⬇️";
-      <div id="sheetList"></div>;
+      label.style.marginBottom = "10px";
+      label.style.fontWeight = "bold";
+      label.style.textAlign = "center";
       sheetButtons.appendChild(label);
+      
+      // 버튼 전용 div
+      const sheetList = document.createElement("div");
+      sheetList.id = "sheetList";
+      sheetList.style.display = "flex";
+      sheetList.style.justifyContent = "center";
+      sheetList.style.gap = "8px"; // 버튼 간격
+      sheetButtons.appendChild(sheetList);
       
       matchingSheets.forEach(sheet => {
         const btn = document.createElement("button");
         btn.textContent = sheet.name;
         btn.onclick = () => displaySheet(sheet.data, searchValue);
-        sheetButtons.appendChild(btn);
+        sheetList.appendChild(btn); // 버튼을 sheetList 안에 넣음
       });
     }
   </script>
