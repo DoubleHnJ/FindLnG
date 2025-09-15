@@ -31,7 +31,7 @@ table {
 td, th {
   padding: 6px 12px;
   text-align: center;
-  border: none; /* 기본 테두리 없음 */
+  border: none;
 }
 .highlight { background-color: yellow; font-weight: bold; }
 </style>
@@ -46,11 +46,10 @@ td, th {
 <div id="sheetButtons"></div>
 <table id="productTable"></table>
 
-  <script>
+<script>
 const SPREADSHEET_ID = "14eYGH3njFIqQr7pX8ClJ5LdIiNnQ272QOYiyeTzATsM"; // 실제 ID로 교체
 const API_KEY = "AIzaSyDhgt-UIJklNeg-Jjky0-3piV6XQx4nrsc"; // 실제 API Key로 교체
-// 검색할 시트 이름 배열
-const SHEETS = ["MAIN", "DSI", "TEST"]; // 필요 시 시트 추가
+const SHEETS = ["MAIN", "DSI", "TEST"]; // 필요 시 시트 추가 
 
 let matchingSheets = [];
 let currentSearchValue = "";
@@ -63,7 +62,7 @@ async function fetchSheetValues(sheetName) {
   return data.values || [];
 }
 
-// 시트 배경색 가져오기
+// 시트 배경색 가져오기 (안전하게)
 async function fetchSheetBackgrounds(sheetName) {
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}?fields=sheets(properties(title),data(rowData(values(userEnteredFormat(backgroundColor))))&key=${API_KEY}`;
   const res = await fetch(url);
@@ -72,14 +71,19 @@ async function fetchSheetBackgrounds(sheetName) {
   const sheetObj = data.sheets.find(s => s.properties.title === sheetName);
   if (!sheetObj || !sheetObj.data || !sheetObj.data[0]?.rowData) return [];
 
-  // rowData가 있을 때만 처리
-  const backgrounds = sheetObj.data[0].rowData.map(row =>
-    row.values
-      ? row.values.map(cell => cell?.userEnteredFormat?.backgroundColor || null)
-      : []  // row.values가 없으면 빈 배열
+  return sheetObj.data[0].rowData.map(row =>
+    (row.values || []).map(cell => cell?.userEnteredFormat?.backgroundColor || null)
   );
+}
 
-  return backgrounds;
+// 테두리 색상 확인
+function hasBorder(bg) {
+  if (!bg) return false;
+  // 흰색 배경(1,1,1)은 테두리 없는 것으로 처리
+  const r = bg.red ?? 1;
+  const g = bg.green ?? 1;
+  const b = bg.blue ?? 1;
+  return !(r === 1 && g === 1 && b === 1);
 }
 
 // 시트 표시
@@ -92,9 +96,7 @@ function displaySheet(values, backgrounds, searchValue) {
   values[0].forEach((cell, cIndex) => {
     const th = document.createElement("th");
     th.textContent = cell;
-    // 헤더 테두리: 배경색 있으면 테두리 표시
-    const bg = backgrounds[0][cIndex];
-    if(bg && (bg.red !== 1 || bg.green !== 1 || bg.blue !== 1)) th.style.border = "1px solid #aaa";
+    if (hasBorder(backgrounds[0][cIndex])) th.style.border = "1px solid #aaa";
     headerRow.appendChild(th);
   });
   table.appendChild(headerRow);
@@ -105,16 +107,12 @@ function displaySheet(values, backgrounds, searchValue) {
     row.forEach((cell, cIndex) => {
       const td = document.createElement("td");
       td.textContent = cell;
-
-      // 하이라이트
-      if(typeof cell === "string" && cell.toLowerCase().includes(searchValue)) td.classList.add("highlight");
-
-      // 배경색이 있으면 테두리 표시
-      const bg = backgrounds[rIndex+1] ? backgrounds[rIndex+1][cIndex] : null;
-      if(bg && (bg.red !== 1 || bg.green !== 1 || bg.blue !== 1)) {
+      if (typeof cell === "string" && cell.toLowerCase().includes(searchValue)) {
+        td.classList.add("highlight");
+      }
+      if (backgrounds[rIndex+1] && hasBorder(backgrounds[rIndex+1][cIndex])) {
         td.style.border = "1px solid #aaa";
       }
-
       tr.appendChild(td);
     });
     table.appendChild(tr);
@@ -131,34 +129,35 @@ async function searchProduct() {
   table.innerHTML = "";
   sheetButtons.innerHTML = "";
 
-  if(searchValue.length < 5) {
+  if (searchValue.length < 5) {
     alert("제품명을 최소 5자 이상 입력해주세요.");
     return;
   }
 
   matchingSheets = [];
 
-  for(let sheet of SHEETS) {
+  // 모든 시트 검색 (병렬 처리)
+  const results = await Promise.all(SHEETS.map(async sheet => {
     const values = await fetchSheetValues(sheet);
     const hasProduct = values.some(row => row.some(cell => typeof cell === "string" && cell.toLowerCase().includes(searchValue)));
-    if(hasProduct) {
-      const backgrounds = await fetchSheetBackgrounds(sheet);
-      matchingSheets.push({ name: sheet, values, backgrounds });
-    }
-  }
+    if (!hasProduct) return null;
+    const backgrounds = await fetchSheetBackgrounds(sheet);
+    return { name: sheet, values, backgrounds };
+  }));
 
-  if(matchingSheets.length === 0) {
+  matchingSheets = results.filter(r => r !== null);
+
+  if (matchingSheets.length === 0) {
     alert("제품을 찾을 수 없습니다.");
     return;
   }
 
-  // 하나면 바로 표시
-  if(matchingSheets.length === 1) {
+  if (matchingSheets.length === 1) {
     displaySheet(matchingSheets[0].values, matchingSheets[0].backgrounds, searchValue);
     return;
   }
 
-  // 여러 시트면 버튼 생성
+  // 여러 시트 버튼
   const label = document.createElement("span");
   label.textContent = "조회할 시트를 선택해 주세요:";
   sheetButtons.appendChild(label);
