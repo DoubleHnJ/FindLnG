@@ -6,21 +6,20 @@
 <style>
 body { font-family: Arial, sans-serif; margin: 30px; }
 h2 { color: #333; }
-table { border-collapse: collapse; margin: 20px 0; }
+table { border-collapse: collapse; margin: 20px 0; width: 100%; }
 td, th { border: 1px solid #aaa; padding: 6px 12px; text-align: center; }
 .highlight { background-color: yellow; font-weight: bold; }
-input { padding: 6px; margin-right: 5px; }
-button { padding: 6px 12px; cursor: pointer; margin: 2px; }
-#sheetButtons { margin: 10px 0; }
+input, button { padding: 6px; margin: 5px 5px 5px 0; }
+#sheetButtons span { margin-right: 10px; font-weight: bold; }
 </style>
 </head>
 <body>
 
-<h2>제품 위치 찾기 (시트 선택 가능 + 하이라이트)</h2>
+<h2>제품 위치 찾기 (시트 선택 + 하이라이트)</h2>
 <input type="text" id="searchBox" placeholder="제품명을 입력하세요">
 <button onclick="searchProduct()">찾기</button>
 
-<div id="sheetButtons"><br>조회 할 시트를 선택해주세요.</br></div>
+<div id="sheetButtons"></div>
 <table id="productTable"></table>
 
 <script>
@@ -28,6 +27,9 @@ const SPREADSHEET_ID = "14eYGH3njFIqQr7pX8ClJ5LdIiNnQ272QOYiyeTzATsM"; // 실제
 const API_KEY = "AIzaSyDhgt-UIJklNeg-Jjky0-3piV6XQx4nrsc"; // 실제 API Key로 교체
 // 검색할 시트 이름 배열
 const SHEETS = ["MAIN", "DSI", "TEST"]; // 필요 시 시트 추가
+
+let matchingSheets = [];
+let currentSearchValue = "";
 
 // 시트 전체 데이터 가져오기
 async function fetchSheet(sheetName) {
@@ -38,7 +40,7 @@ async function fetchSheet(sheetName) {
 }
 
 // 시트 데이터 테이블 표시
-function displaySheet(sheetName, rows, searchValue) {
+function displaySheet(rows, searchValue) {
   const table = document.getElementById("productTable");
   table.innerHTML = "";
 
@@ -66,20 +68,22 @@ function displaySheet(sheetName, rows, searchValue) {
   });
 }
 
-// 검색 + 시트 선택 버튼 표시
+// 검색 + 시트 버튼 표시
 async function searchProduct() {
   const searchValue = document.getElementById("searchBox").value.trim().toLowerCase();
+  currentSearchValue = searchValue;
+
   const table = document.getElementById("productTable");
   const sheetButtons = document.getElementById("sheetButtons");
   table.innerHTML = "";
-  sheetButtons.innerHTML = "";
+  sheetButtons.innerHTML = ""; // 기존 버튼 초기화
 
   if(searchValue.length < 5) {
     alert("제품명을 최소 5자 이상 입력해주세요.");
     return;
   }
 
-  let matchingSheets = [];
+  matchingSheets = [];
 
   // 모든 시트 검색
   for (let sheet of SHEETS) {
@@ -97,15 +101,19 @@ async function searchProduct() {
 
   // 시트가 하나면 바로 표시
   if(matchingSheets.length === 1) {
-    displaySheet(matchingSheets[0].name, matchingSheets[0].data, searchValue);
+    displaySheet(matchingSheets[0].data, searchValue);
     return;
   }
 
-  // 여러 시트일 경우 버튼으로 선택
+  // 시트가 2개 이상일 때만 문구 + 버튼 생성
+  const label = document.createElement("span");
+  label.textContent = "조회할 시트를 선택해 주세요:";
+  sheetButtons.appendChild(label);
+
   matchingSheets.forEach(sheet => {
     const btn = document.createElement("button");
     btn.textContent = sheet.name;
-    btn.onclick = () => displaySheet(sheet.name, sheet.data, searchValue);
+    btn.onclick = () => displaySheet(sheet.data, searchValue);
     sheetButtons.appendChild(btn);
   });
 }
