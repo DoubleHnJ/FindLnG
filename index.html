@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>제품 위치 찾기 - dsi전</title>
+  <title>제품 위치 찾기(DoubleH 25.09.15)</title>
   <style>
     /* 전체 중앙 정렬 */
     body {
@@ -156,34 +156,15 @@
       }
 
       // 시트가 2개 이상일 때만 문구 + 버튼 생성
-      const sheetButtons = document.getElementById("sheetButtons");
-      sheetButtons.style.display = "flex";
-      sheetButtons.style.flexDirection = "column"; // 세로 배치
-      sheetButtons.style.alignItems = "center"; // 가운데 정렬
-      
-      // 라벨 추가
-      const label = document.createElement("div");
-      label.textContent = "⬇️⬇️아래에서 조회할 시트를 선택해 주세요⬇️⬇️";
-      label.style.marginBottom = "10px";
-      label.style.fontWeight = "bold";
-      label.style.textAlign = "center";
+      const label = document.createElement("span");
+      label.textContent = "조회할 시트를 선택해 주세요:";
       sheetButtons.appendChild(label);
-      
-      // 버튼 전용 div 추가
-      const sheetList = document.createElement("div");
-      sheetList.id = "sheetList";
-      sheetList.style.display = "flex";
-      sheetList.style.flexWrap = "wrap";
-      sheetList.style.justifyContent = "center";
-      sheetList.style.gap = "8px"; 
-      sheetButtons.appendChild(sheetList);
-      
-      // 버튼 생성
+
       matchingSheets.forEach(sheet => {
         const btn = document.createElement("button");
         btn.textContent = sheet.name;
         btn.onclick = () => displaySheet(sheet.data, searchValue);
-        sheetList.appendChild(btn);
+        sheetButtons.appendChild(btn);
       });
     }
   </script>
