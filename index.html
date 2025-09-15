@@ -42,13 +42,22 @@ async function searchProduct() {
   const table = document.getElementById("productTable");
   table.innerHTML = "";
 
+  // 5자 미만이면 경고
+  if(searchValue.length < 5) {
+    alert("제품명을 최소 5자 이상 입력해주세요.");
+    return;
+  }
+
   let found = false;
 
   for (let sheet of SHEETS) {
     const rows = await fetchSheet(sheet);
 
-    // 시트에 제품이 있는지 확인
-    const sheetHasProduct = rows.some(row => row.some(cell => cell.toLowerCase() === searchValue));
+    // 시트에 제품이 있는지 확인 (부분 일치 가능)
+    const sheetHasProduct = rows.some(row => row.some(cell => 
+      typeof cell === "string" && cell.toLowerCase().includes(searchValue)
+    ));
+
     if(sheetHasProduct) {
       // 헤더 추가 (첫 행)
       const headerRow = document.createElement("tr");
@@ -66,15 +75,17 @@ async function searchProduct() {
           const td = document.createElement("td");
           td.textContent = cell;
 
-          // 입력한 제품명과 일치하면 하이라이트
-          if(cell.toLowerCase() === searchValue) td.classList.add("highlight");
+          // 입력한 제품명 포함 시 하이라이트
+          if(typeof cell === "string" && cell.toLowerCase().includes(searchValue)) {
+            td.classList.add("highlight");
+          }
           tr.appendChild(td);
         });
         table.appendChild(tr);
       });
 
       found = true;
-      break; // 첫 번째 일치 시트만 표시, 필요시 break 제거
+      break; // 첫 번째 일치 시트만 표시, 필요시 break 제거 가능
     }
   }
 
@@ -84,3 +95,4 @@ async function searchProduct() {
 
 </body>
 </html>
+
