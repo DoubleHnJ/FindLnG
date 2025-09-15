@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>제품 위치 찾기 - 배경색 기반 테두리</title>
+<title>제품 위치 찾기 - 11배경색 기반 테두리</title>
 <style>
 body {
   font-family: Arial, sans-serif;
@@ -11,8 +11,14 @@ body {
   align-items: center;
   margin: 30px;
 }
-h2 { text-align: center; color: #333; }
-input, button { padding: 6px; margin: 5px; }
+h2 {
+  text-align: center;
+  color: #333;
+}
+input, button {
+  padding: 6px;
+  margin: 5px;
+}
 #sheetButtons {
   display: flex;
   flex-wrap: wrap;
@@ -33,7 +39,10 @@ td, th {
   text-align: center;
   border: none;
 }
-.highlight { background-color: yellow; font-weight: bold; }
+.highlight {
+  background-color: yellow;
+  font-weight: bold;
+}
 </style>
 </head>
 <body>
@@ -47,9 +56,11 @@ td, th {
 <table id="productTable"></table>
 
 <script>
-const SPREADSHEET_ID = "14eYGH3njFIqQr7pX8ClJ5LdIiNnQ272QOYiyeTzATsM"; // 실제 ID로 교체
-const API_KEY = "AIzaSyDhgt-UIJklNeg-Jjky0-3piV6XQx4nrsc"; // 실제 API Key로 교체
-const SHEETS = ["MAIN", "DSI", "TEST"]; // 필요 시 시트 추가 
+// ====== 설정 부분 ======
+const SPREADSHEET_ID = "14eYGH3njFIqQr7pX8ClJ5LdIiNnQ272QOYiyeTzATsM"; // 나중에 교체
+const API_KEY = "AIzaSyDhgt-UIJklNeg-Jjky0-3piV6XQx4nrsc"; // 나중에 교체
+const SHEETS = ["MAIN", "DSI", "TEST"]; // 검색할 시트 목록
+// ======================
 
 let matchingSheets = [];
 let currentSearchValue = "";
@@ -62,110 +73,109 @@ async function fetchSheetValues(sheetName) {
   return data.values || [];
 }
 
-// 시트 배경색 가져오기 (안전하게)
+// 시트 배경색 가져오기
 async function fetchSheetBackgrounds(sheetName) {
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}?fields=sheets(properties(title),data(rowData(values(userEnteredFormat(backgroundColor))))&key=${API_KEY}`;
   const res = await fetch(url);
   const data = await res.json();
-
   const sheetObj = data.sheets.find(s => s.properties.title === sheetName);
   if (!sheetObj || !sheetObj.data || !sheetObj.data[0]?.rowData) return [];
 
   return sheetObj.data[0].rowData.map(row =>
-    (row.values || []).map(cell => cell?.userEnteredFormat?.backgroundColor || null)
+    (row.values || []).map(cell => {
+      const bg = cell?.userEnteredFormat?.backgroundColor;
+      return bg ? bg : null;
+    })
   );
 }
 
-// 테두리 색상 확인
-function hasBorder(bg) {
-  if (!bg) return false;
-  // 흰색 배경(1,1,1)은 테두리 없는 것으로 처리
+// 배경색 기반 테두리 판단
+function hasBorder(bg){
+  if(!bg) return false;
   const r = bg.red ?? 1;
   const g = bg.green ?? 1;
   const b = bg.blue ?? 1;
-  return !(r === 1 && g === 1 && b === 1);
+  return !(r===1 && g===1 && b===1);
 }
 
-// 시트 표시
-function displaySheet(values, backgrounds, searchValue) {
+// 테이블 표시
+function displaySheet(sheet) {
   const table = document.getElementById("productTable");
-  table.innerHTML = "";
+  table.innerHTML="";
+  const values = sheet.values;
+  const backgrounds = sheet.backgrounds;
+  const searchValue = currentSearchValue;
 
   // 헤더
   const headerRow = document.createElement("tr");
-  values[0].forEach((cell, cIndex) => {
+  values[0].forEach((cell,i)=>{
     const th = document.createElement("th");
     th.textContent = cell;
-    if (hasBorder(backgrounds[0][cIndex])) th.style.border = "1px solid #aaa";
+    if(hasBorder(backgrounds[0][i])) th.style.border="1px solid #aaa";
     headerRow.appendChild(th);
   });
   table.appendChild(headerRow);
 
   // 데이터
-  values.slice(1).forEach((row, rIndex) => {
+  values.slice(1).forEach((row,rIndex)=>{
     const tr = document.createElement("tr");
-    row.forEach((cell, cIndex) => {
+    row.forEach((cell,cIndex)=>{
       const td = document.createElement("td");
       td.textContent = cell;
-      if (typeof cell === "string" && cell.toLowerCase().includes(searchValue)) {
-        td.classList.add("highlight");
-      }
-      if (backgrounds[rIndex+1] && hasBorder(backgrounds[rIndex+1][cIndex])) {
-        td.style.border = "1px solid #aaa";
-      }
+      if(String(cell).toLowerCase().includes(searchValue)) td.classList.add("highlight");
+      if(backgrounds[rIndex+1] && hasBorder(backgrounds[rIndex+1][cIndex])) td.style.border="1px solid #aaa";
       tr.appendChild(td);
     });
     table.appendChild(tr);
   });
 }
 
-// 검색
-async function searchProduct() {
+// 제품 검색
+async function searchProduct(){
   const searchValue = document.getElementById("searchBox").value.trim().toLowerCase();
   currentSearchValue = searchValue;
-
   const table = document.getElementById("productTable");
   const sheetButtons = document.getElementById("sheetButtons");
-  table.innerHTML = "";
-  sheetButtons.innerHTML = "";
+  table.innerHTML="";
+  sheetButtons.innerHTML="";
 
-  if (searchValue.length < 5) {
+  if(searchValue.length < 5){
     alert("제품명을 최소 5자 이상 입력해주세요.");
     return;
   }
 
   matchingSheets = [];
 
-  // 모든 시트 검색 (병렬 처리)
+  // 시트별 검색 (병렬 처리)
   const results = await Promise.all(SHEETS.map(async sheet => {
     const values = await fetchSheetValues(sheet);
     const hasProduct = values.some(row => row.some(cell => typeof cell === "string" && cell.toLowerCase().includes(searchValue)));
-    if (!hasProduct) return null;
+    if(!hasProduct) return null;
     const backgrounds = await fetchSheetBackgrounds(sheet);
-    return { name: sheet, values, backgrounds };
+    return {name: sheet, values, backgrounds};
   }));
 
   matchingSheets = results.filter(r => r !== null);
 
-  if (matchingSheets.length === 0) {
+  if(matchingSheets.length===0){
     alert("제품을 찾을 수 없습니다.");
     return;
   }
 
-  if (matchingSheets.length === 1) {
-    displaySheet(matchingSheets[0].values, matchingSheets[0].backgrounds, searchValue);
+  if(matchingSheets.length===1){
+    displaySheet(matchingSheets[0]);
     return;
   }
 
-  // 여러 시트 버튼
+  // 다중 시트 선택 버튼
   const label = document.createElement("span");
   label.textContent = "조회할 시트를 선택해 주세요:";
   sheetButtons.appendChild(label);
 
-  matchingSheets.forEach(sheet => {
+  matchingSheets.forEach(sheet=>{
     const btn = document.createElement("button");
     btn.textContent = sheet.name;
-    btn.onclick = () => displaySheet(sheet.values, sheet.backgrounds, searchValue);
+    btn.onclick = ()=>displaySheet(sheet);
     sheetButtons.appendChild(btn);
   });
 }
