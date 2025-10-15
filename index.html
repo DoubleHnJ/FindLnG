@@ -83,22 +83,32 @@
       return data.values || [];
     }
 
-    // ✅ 검색어 포함된 행만 필터링하여 표시
+    // ✅ 조건에 따라 시트 표시
     function displaySheet(rows, searchValue) {
       const table = document.getElementById("productTable");
       table.innerHTML = "";
 
+      const totalRows = rows.length;
       const header = rows[0];
-      const filteredRows = rows.slice(1).filter(row =>
-        row.some(cell => typeof cell === "string" && cell.toLowerCase().includes(searchValue))
-      );
 
-      if (filteredRows.length === 0) {
+      let displayRows = [];
+
+      if (totalRows <= 100) {
+        // ✅ 100행 이하 → 전체 표시
+        displayRows = rows.slice(1);
+      } else {
+        // ✅ 101행 이상 → 검색 결과만 표시
+        displayRows = rows.slice(1).filter(row =>
+          row.some(cell => typeof cell === "string" && cell.toLowerCase().includes(searchValue))
+        );
+      }
+
+      if (displayRows.length === 0) {
         table.innerHTML = "<tr><td>검색 결과가 없습니다.</td></tr>";
         return;
       }
 
-      // 헤더
+      // 헤더 표시
       const headerRow = document.createElement("tr");
       header.forEach(cell => {
         const th = document.createElement("th");
@@ -107,8 +117,8 @@
       });
       table.appendChild(headerRow);
 
-      // 필터링된 행 표시
-      filteredRows.forEach(row => {
+      // 행 표시
+      displayRows.forEach(row => {
         const tr = document.createElement("tr");
         row.forEach(cell => {
           const td = document.createElement("td");
@@ -121,12 +131,12 @@
         table.appendChild(tr);
       });
 
-      // ✅ 첫 번째 결과로 스크롤 이동
+      // ✅ 자동 스크롤 (highlight 위치로)
       setTimeout(() => {
         const firstHighlight = document.querySelector(".highlight");
         if (firstHighlight) {
           firstHighlight.scrollIntoView({ behavior: "smooth", block: "center" });
-          firstHighlight.style.outline = "3px solid orange"; // 강조 표시
+          firstHighlight.style.outline = "3px solid orange";
         }
       }, 300);
     }
@@ -164,13 +174,13 @@
         return;
       }
 
-      // 결과가 하나면 바로 표시
+      // ✅ 결과가 하나면 바로 표시
       if (matchingSheets.length === 1) {
         displaySheet(matchingSheets[0].data, searchValue);
         return;
       }
 
-      // 여러 시트 결과 버튼 표시
+      // ✅ 여러 시트면 버튼 표시
       const label = document.createElement("span");
       label.textContent = "조회할 시트를 선택해 주세요:";
       sheetButtons.appendChild(label);
