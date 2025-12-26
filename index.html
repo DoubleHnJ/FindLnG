@@ -60,7 +60,7 @@
 
   <h2>제품 위치/후처리(도금견적) 찾기 </h2>
 
-  <input type="text" id="searchBox" placeholder="제품명을 입력하세요">
+  <input type="text" id="searchBox" placeholder="제품명을 입력하세요" onkeydown="handleEnter(event)>
   <button onclick="searchProduct()">찾기</button>
   <h2>update 25.10.24</h2>
 
@@ -70,11 +70,20 @@
   <script>
     const SPREADSHEET_ID = "14eYGH3njFIqQr7pX8ClJ5LdIiNnQ272QOYiyeTzATsM";
     const API_KEY = "AIzaSyDhgt-UIJklNeg-Jjky0-3piV6XQx4nrsc";
-    const SHEETS = ["MAIN", "DSI", "24년도 재고조사","25년도 도금견적","24년도 도금견적","23년도 도금견적"];
+    const SHEETS = ["MAIN", "DSI", "24년도 재고조사","25년도 도금견적","24년도 도금견적","23년도 도금견적", "2025 재고조사_위치참고용"];
 
     let matchingSheets = [];
     let currentSearchValue = "";
 
+    // ✅ 찾기 엔터버튼 적용
+    function handleEnter(event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        searchProduct();
+        document.getElementById("searchBox").blur(); // 키보드 접힘 효과
+      }
+    }
+    
     // ✅ 시트 데이터 가져오기
     async function fetchSheet(sheetName) {
       const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${sheetName}?key=${API_KEY}`;
@@ -93,7 +102,7 @@
 
       let displayRows = [];
 
-      if (totalRows <= 100) {
+      if (totalRows <= 99999) {
         // ✅ 100행 이하 → 전체 표시
         displayRows = rows.slice(1);
       } else {
