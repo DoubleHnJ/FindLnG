@@ -60,7 +60,7 @@
 
   <h2>제품 위치/후처리(도금견적) 찾기 </h2>
 
-  <input type="text" id="searchBox" placeholder="제품명을 입력하세요" onkeydown="handleEnter(event)>
+  <input type="text" id="searchBox" placeholder="제품명을 입력하세요" onkeydown="handleEnter(event)">
   <button onclick="searchProduct()">찾기</button>
   <h2>Lastest update 25.12.26</h2>
 
@@ -75,15 +75,7 @@
     let matchingSheets = [];
     let currentSearchValue = "";
 
-    // ✅ 찾기 엔터버튼 적용
-    function handleEnter(event) {
-      if (event.key === "Enter") {
-        event.preventDefault();
-        searchProduct();
-        document.getElementById("searchBox").blur(); // 키보드 접힘 효과
-      }
-    }
-    
+   
     // ✅ 시트 데이터 가져오기
     async function fetchSheet(sheetName) {
       const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${sheetName}?key=${API_KEY}`;
@@ -165,6 +157,14 @@
         return;
       }
 
+    // ✅ 찾기 엔터버튼 적용
+    function handleEnter(event) {
+      if (event.key === "Enter") {
+        event.preventDefault(); // 혹시 모를 기본 동작 방지
+        searchProduct();
+      }
+    }
+      
       matchingSheets = [];
 
       // 모든 시트 검색
